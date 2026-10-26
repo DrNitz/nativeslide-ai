@@ -1,0 +1,196 @@
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+MANIFEST
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+
+# Testing & linting
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.cover
+*.coveralls.json
+nosetests.xml
+pytestdebug.log
+.tox/
+.nox/
+
+# ─── Environment Files ────────────────────────────────────────────────────────
+# Never commit real env files — keep only .example files
+.env
+.env.local
+.env.production
+.env.staging
+.env.test
+
+# Keep example/template files
+!.env.example
+!.env.example.local
+
+# ─── Node.js / Next.js ────────────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Next.js specific
+.next/cache/
+
+# ─── Generated PPTX Output Files ─────────────────────────────────────────────
+# Do not commit generated presentation files
+/tmp/outputs/
+/tmp/nativeslide_outputs/
+
+# Ignore pptx in temp/output directories but allow sample files in docs/
+tmp/**/*.pptx
+**/outputs/**/*.pptx
+backend/generated/
+
+# Allow sample output files committed for testing/docs
+!docs/samples/*.pptx
+
+# ─── OS Artifacts ─────────────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ─── IDE / Editor ─────────────────────────────────────────────────────────────
+# VS Code — ignore settings but keep recommended extensions
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json.example
+
+# JetBrains / IntelliJ / PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea_modules/
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+
+# ─── Supabase ─────────────────────────────────────────────────────────────────
+.supabase/
+supabase/.temp/
+supabase/config.local.toml
+
+# ─── Oracle Cloud / Cloud Credentials ────────────────────────────────────────
+# Never commit private keys or cloud config
+*.pem
+*.key
+*.p12
+*.pfx
+oracle_config
+oci_config
+~/.oci/
+
+# SSH keys
+id_rsa
+id_ed25519
+id_ecdsa
+*.ppk
+
+# ─── Docker ───────────────────────────────────────────────────────────────────
+.docker/
+docker-compose.override.yml
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+*.log.*
+lerna-debug.log*
+
+# ─── Misc ─────────────────────────────────────────────────────────────────────
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+*.pid
+*.seed
+*.pid.lock
+.serverless/
+.fusebox/
+.dynamodb/
