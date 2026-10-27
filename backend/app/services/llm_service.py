@@ -1,6 +1,6 @@
 """
 NativeSlide AI — LLM Orchestration Service
-Uses Google Gemini 1.5 Flash (free tier) to convert raw text/topics
+Uses Google Gemini API via async httpx to convert raw text/topics
 into fully structured slide JSON specifications following the DeckSpec schema.
 """
 from __future__ import annotations
@@ -8,8 +8,11 @@ from __future__ import annotations
 import json
 import logging
 import re
+import socket
 from datetime import datetime, timezone
 from typing import Any
+
+import httpx
 
 from app.core.config import get_settings
 from app.engine.themes import detect_theme
@@ -25,27 +28,27 @@ from app.models.schemas import (
 
 logger = logging.getLogger(__name__)
 
+# Ensure IPv4 resolution precedence for reliable connectivity
 try:
-    import google.generativeai as genai  # type: ignore
-    _HAS_GEMINI = True
-except ImportError:
-    _HAS_GEMINI = False
+    _orig_getaddrinfo = socket.getaddrinfo
+
+    def _ipv4_first_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+        res = _orig_getaddrinfo(host, port, family, type, proto, flags)
+        return sorted(res, key=lambda x: 0 if x[0] == socket.AF_INET else 1)
+
+    socket.getaddrinfo = _ipv4_first_getaddrinfo
+except Exception:
+    pass
 
 
 class LLMService:
-    """Orchestrates Gemini 1.5 Flash API calls to plan and structure presentations."""
+    """Orchestrates Gemini REST API calls to plan and structure presentations."""
 
     def __init__(self) -> None:
         self.settings = get_settings()
-        self._client_ready = False
-
-        if _HAS_GEMINI and self.settings.GEMINI_API_KEY:
-            try:
-                genai.configure(api_key=self.settings.GEMINI_API_KEY)
-                self.model = genai.GenerativeModel(self.settings.GEMINI_MODEL)
-                self._client_ready = True
-            except Exception as e:
-                logger.warning(f"Could not initialize Gemini client: {e}")
+        self.api_key = self.settings.GEMINI_API_KEY
+        self.model = self.settings.GEMINI_MODEL or "gemini-3.5-flash"
+        self._client_ready = bool(self.api_key and len(self.api_key) > 10)
 
     def _build_system_prompt(self, num_slides: int, theme_mood: ThemeMood) -> str:
         return f"""You are an elite executive presentation designer and domain consultant.
@@ -109,32 +112,67 @@ JSON SCHEMA EXPECTED:
         theme_override: ThemeMood | None = None,
     ) -> DeckSpec:
         """
-        Generate a fully structured DeckSpec using Gemini 1.5 Flash.
-        Falls back to a structured deterministic outline if API is unconfigured.
+        Generate a fully structured DeckSpec using Gemini API.
+        Falls back to a structured deterministic outline if API call fails or is unconfigured.
         """
         theme_mood = theme_override or detect_theme(topic, content[:500])
 
         if self._client_ready:
             try:
-                prompt = self._build_system_prompt(num_slides, theme_mood)
-                user_msg = f"TOPIC: {topic}\n\nCONTENT / REFERENCE MATERIAL:\n{content[:20000]}"
-
-                response = self.model.generate_content(
-                    f"{prompt}\n\n{user_msg}",
-                    generation_config={"temperature": 0.3, "max_output_tokens": 8192},
-                )
-                text_resp = response.text.strip()
-                # Clean any markdown fences if present
-                text_resp = re.sub(r"^```(?:json)?\s*", "", text_resp)
-                text_resp = re.sub(r"\s*```$", "", text_resp)
-
-                data = json.loads(text_resp)
-                return DeckSpec.model_validate(data)
+                deck_spec = await self._call_gemini_api(topic, content, num_slides, theme_mood)
+                if deck_spec:
+                    return deck_spec
             except Exception as exc:
-                logger.error(f"Gemini generation error: {exc}. Using robust fallback generator.")
+                logger.error(f"Gemini generation error: {exc}. Using fallback deck generator.")
 
         # Fallback generator for offline/dev/demo testing
         return self._generate_fallback_deck(topic, content, num_slides, theme_mood)
+
+    async def _call_gemini_api(
+        self,
+        topic: str,
+        content: str,
+        num_slides: int,
+        theme_mood: ThemeMood,
+    ) -> DeckSpec | None:
+        """Execute async HTTP request to Gemini REST endpoint."""
+        prompt = self._build_system_prompt(num_slides, theme_mood)
+        user_msg = f"TOPIC: {topic}\n\nCONTENT / REFERENCE MATERIAL:\n{content[:20000]}"
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": f"{prompt}\n\n{user_msg}"}
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": self.settings.GEMINI_MAX_TOKENS,
+                "responseMimeType": "application/json",
+            },
+        }
+
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            response = await client.post(url, json=payload)
+            if response.status_code != 200:
+                logger.warning(f"Gemini API returned HTTP {response.status_code}: {response.text}")
+                return None
+
+            data = response.json()
+            candidates = data.get("candidates", [])
+            if not candidates:
+                return None
+
+            raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
+            # Clean markdown code fences if present
+            raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
+            raw_text = re.sub(r"\s*```$", "", raw_text)
+
+            parsed_json = json.loads(raw_text)
+            return DeckSpec.model_validate(parsed_json)
 
     def _generate_fallback_deck(
         self,

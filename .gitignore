@@ -194,3 +194,6 @@ lerna-debug.log*
 .serverless/
 .fusebox/
 .dynamodb/
+*.fnx
+*.key
+

@@ -37,7 +37,7 @@ class Settings(BaseSettings):
         description="Google AI Studio API key (https://aistudio.google.com/).",
     )
     GEMINI_MODEL: str = Field(
-        default="gemini-1.5-flash",
+        default="gemini-3.5-flash",
         description="Gemini model identifier to use for slide planning.",
     )
     GEMINI_MAX_TOKENS: int = Field(
