@@ -45,6 +45,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origin_regex=r"^https:\/\/.*\.pages\.dev$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -68,4 +69,6 @@ async def health_check() -> dict:
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=settings.DEBUG)
+    import os
+    port = int(os.environ.get("PORT", 7860 if os.environ.get("SPACE_ID") else 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=settings.DEBUG)
